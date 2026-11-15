@@ -3,8 +3,10 @@ import { qualityLabel } from "../format";
 
 /** Zeichen im Abzeichen, kurz genug für 16 px */
 export const badgeGlyph: Record<Quality, string> = {
+  grossartig: "!",
   best: "★",
-  gut: "✓",
+  exzellent: "✓",
+  gut: "+",
   buch: "≡",
   ungenau: "?!",
   fehler: "?",

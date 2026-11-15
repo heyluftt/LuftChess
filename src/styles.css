@@ -15,7 +15,9 @@
   --dim: #7d776e;
   --ebony: #141312;
 
+  --q-grossartig: #7fa8d6;
   --q-best: #86b98a;
+  --q-exzellent: #a4c493;
   --q-gut: #a3ad98;
   --q-ungenau: #e2c25b;
   --q-fehler: #ee9440;
@@ -567,7 +569,9 @@ h3 {
   letter-spacing: -0.04em;
 }
 
+.qb--grossartig { background: var(--q-grossartig); fill: var(--q-grossartig); }
 .qb--best { background: var(--q-best); fill: var(--q-best); }
+.qb--exzellent { background: var(--q-exzellent); fill: var(--q-exzellent); }
 .qb--gut { background: var(--q-gut); fill: var(--q-gut); }
 .qb--buch { background: var(--q-buch); fill: var(--q-buch); }
 .qb--ungenau { background: var(--q-ungenau); fill: var(--q-ungenau); }
@@ -640,7 +644,9 @@ h3 {
   border-left: 3px solid var(--line-strong);
 }
 
+.mc--grossartig { border-left-color: var(--q-grossartig); }
 .mc--best { border-left-color: var(--q-best); }
+.mc--exzellent { border-left-color: var(--q-exzellent); }
 .mc--gut { border-left-color: var(--q-gut); }
 .mc--buch { border-left-color: var(--q-buch); }
 .mc--ungenau { border-left-color: var(--q-ungenau); }
@@ -944,7 +950,9 @@ h3 {
 
 /* Bewertungsfarben */
 
+.q--grossartig { color: var(--q-grossartig); }
 .q--best { color: var(--q-best); }
+.q--exzellent { color: var(--q-exzellent); }
 .q--gut { color: var(--ash); }
 .q--ungenau { color: var(--q-ungenau); }
 .q--fehler { color: var(--q-fehler); }
@@ -965,7 +973,9 @@ h3 {
   margin-right: 6px;
 }
 
+.q-fill--grossartig { fill: var(--q-grossartig); background: var(--q-grossartig); }
 .q-fill--best { fill: var(--q-best); background: var(--q-best); }
+.q-fill--exzellent { fill: var(--q-exzellent); background: var(--q-exzellent); }
 .q-fill--ungenau { fill: var(--q-ungenau); background: var(--q-ungenau); }
 .q-fill--fehler { fill: var(--q-fehler); background: var(--q-fehler); }
 .q-fill--verpasst { fill: var(--q-verpasst); background: var(--q-verpasst); }

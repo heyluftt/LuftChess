@@ -1,4 +1,13 @@
-export type Quality = "best" | "gut" | "ungenau" | "fehler" | "verpasst" | "patzer" | "buch";
+export type Quality =
+  | "grossartig"
+  | "best"
+  | "exzellent"
+  | "gut"
+  | "buch"
+  | "ungenau"
+  | "fehler"
+  | "verpasst"
+  | "patzer";
 
 export interface Opening {
   eco: string;

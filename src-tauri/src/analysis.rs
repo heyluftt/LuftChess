@@ -4,7 +4,7 @@
 use crate::openings::{self, Opening};
 use serde::{Deserialize, Serialize};
 use shakmaty::{
-    fen::Fen, san::San, san::SanPlus, uci::UciMove, CastlingMode, Chess, Color, EnPassantMode, Position,
+    fen::Fen, san::San, san::SanPlus, uci::UciMove, CastlingMode, Chess, Color, EnPassantMode, Position, Square,
 };
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
@@ -15,7 +15,11 @@ const CLAMP_CP: i32 = 1000;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum Quality {
+    /// Einziger guter Zug in der Stellung
+    Grossartig,
     Best,
+    /// Fast so gut wie der beste Zug
+    Exzellent,
     Gut,
     Ungenau,
     Fehler,
@@ -225,6 +229,8 @@ struct EngineAnswer {
     best: Option<String>,
     /// Hauptvariante in UCI
     pv: Vec<String>,
+    /// Bewertung des zweitbesten Zugs (cp, mate), aus Sicht der Seite am Zug
+    second: Option<(Option<i32>, Option<i32>)>,
 }
 
 impl Engine {
@@ -251,6 +257,13 @@ impl Engine {
         eng.send("isready")?;
         eng.wait_for("readyok")?;
         Ok(eng)
+    }
+
+    /// Anzahl der berechneten Varianten (2 liefert den zweitbesten Zug)
+    fn set_multipv(&mut self, n: u32) -> Result<(), String> {
+        self.send(&format!("setoption name MultiPV value {n}"))?;
+        self.send("isready")?;
+        self.wait_for("readyok")
     }
 
     fn send(&mut self, line: &str) -> Result<(), String> {
@@ -289,40 +302,40 @@ impl Engine {
         // (bei Stockfish 19 mit mehreren Threads beobachtet), dann endet sie nie auf der Zieltiefe
         let cap_ms = 3000 + depth * 200;
         self.send(&format!("go depth {depth} movetime {cap_ms}"))?;
-        let mut ans = EngineAnswer { cp: None, mate: None, best: None, pv: Vec::new() };
+        let mut ans = EngineAnswer { cp: None, mate: None, best: None, pv: Vec::new(), second: None };
         loop {
             let line = self.read_line()?;
             let mut it = line.split_whitespace();
             match it.next() {
                 Some("info") => {
                     let parts: Vec<&str> = line.split_whitespace().collect();
-                    // nur Hauptvariante (multipv 1 oder ohne Angabe)
-                    if let Some(i) = parts.iter().position(|p| *p == "multipv") {
-                        if parts.get(i + 1) != Some(&"1") {
-                            continue;
-                        }
+                    // Variante 1 (oder ohne Angabe) ist die Hauptvariante, 2 der zweitbeste Zug
+                    let pv_index = parts
+                        .iter()
+                        .position(|p| *p == "multipv")
+                        .and_then(|i| parts.get(i + 1))
+                        .and_then(|v| v.parse::<u32>().ok())
+                        .unwrap_or(1);
+                    let Some(i) = parts.iter().position(|p| *p == "score") else { continue };
+                    let kind = parts.get(i + 1).copied();
+                    let val = parts.get(i + 2).and_then(|v| v.parse::<i32>().ok());
+                    if matches!(parts.get(i + 3).copied(), Some("lowerbound") | Some("upperbound")) {
+                        continue;
                     }
-                    if let Some(i) = parts.iter().position(|p| *p == "score") {
-                        let kind = parts.get(i + 1).copied();
-                        let val = parts.get(i + 2).and_then(|v| v.parse::<i32>().ok());
-                        let bound = matches!(parts.get(i + 3).copied(), Some("lowerbound") | Some("upperbound"));
-                        if bound {
-                            continue;
-                        }
-                        match (kind, val) {
-                            (Some("cp"), Some(v)) => {
-                                ans.cp = Some(v);
-                                ans.mate = None;
+                    let score = match (kind, val) {
+                        (Some("cp"), Some(v)) => (Some(v), None),
+                        (Some("mate"), Some(v)) => (None, Some(v)),
+                        _ => continue,
+                    };
+                    match pv_index {
+                        1 => {
+                            (ans.cp, ans.mate) = score;
+                            if let Some(p) = parts.iter().position(|p| *p == "pv") {
+                                ans.pv = parts[p + 1..].iter().map(|s| s.to_string()).collect();
                             }
-                            (Some("mate"), Some(v)) => {
-                                ans.mate = Some(v);
-                                ans.cp = None;
-                            }
-                            _ => {}
                         }
-                        if let Some(p) = parts.iter().position(|p| *p == "pv") {
-                            ans.pv = parts[p + 1..].iter().map(|s| s.to_string()).collect();
-                        }
+                        2 => ans.second = Some(score),
+                        _ => {}
                     }
                 }
                 Some("bestmove") => {
@@ -344,22 +357,37 @@ impl Drop for Engine {
 
 // ---------------------------------------------------------------- Bewertung
 
-fn to_white(ans: &EngineAnswer, turn: Color, pos: &Chess) -> Score {
+/// Engine-Bewertung (Sicht der Seite am Zug) in eine Bewertung aus Sicht von Weiß
+fn score_white(cp: Option<i32>, mate: Option<i32>, turn: Color) -> Score {
     let sign = if turn == Color::White { 1 } else { -1 };
+    if let Some(m) = mate {
+        let m = m * sign;
+        let cp = if m == 0 { -sign * CLAMP_CP } else { m.signum() * CLAMP_CP };
+        return Score { cp, mate: Some(m) };
+    }
+    Score { cp: (cp.unwrap_or(0) * sign).clamp(-CLAMP_CP, CLAMP_CP), mate: None }
+}
+
+fn to_white(ans: &EngineAnswer, turn: Color, pos: &Chess) -> Score {
     // Partieende: kein Zug mehr möglich
     if ans.cp.is_none() && ans.mate.is_none() {
+        let sign = if turn == Color::White { 1 } else { -1 };
         if pos.is_checkmate() {
             // die Seite am Zug ist matt
             return Score { cp: -sign * CLAMP_CP, mate: Some(0) };
         }
         return Score { cp: 0, mate: None };
     }
-    if let Some(m) = ans.mate {
-        let m = m * sign;
-        let cp = if m == 0 { -sign * CLAMP_CP } else { m.signum() * CLAMP_CP };
-        return Score { cp, mate: Some(m) };
+    score_white(ans.cp, ans.mate, turn)
+}
+
+/// Gewinnchance (0–100) aus Sicht des Ziehenden
+fn mover_pct(s: &Score, white: bool) -> f64 {
+    if white {
+        win_pct(s.cp)
+    } else {
+        100.0 - win_pct(s.cp)
     }
-    Score { cp: (ans.cp.unwrap_or(0) * sign).clamp(-CLAMP_CP, CLAMP_CP), mate: None }
 }
 
 /// Gewinnchance (0–100) aus Sicht von Weiß, wie bei Lichess
@@ -378,30 +406,70 @@ fn move_accuracy(before_white: i32, after_white: i32, white: bool) -> f64 {
     (103.1668 * (-0.04354 * drop).exp() - 3.1669).clamp(0.0, 100.0)
 }
 
-fn classify(before: &Score, after: &Score, white: bool, played_best: bool) -> (i32, Quality) {
-    let s = if white { 1 } else { -1 };
-    let loss = ((before.cp - after.cp) * s).max(0);
+/// Alles, was zur Einordnung eines Zugs gebraucht wird
+struct MoveCtx<'a> {
+    before: &'a Score,
+    after: &'a Score,
+    white: bool,
+    played_best: bool,
+    /// Bewertung des zweitbesten Zugs (Sicht von Weiß), falls es einen gab
+    second: Option<&'a Score>,
+    /// Gewinnchance des Ziehenden vor dem letzten Zug des Gegners und dessen Verlust dabei
+    prev: Option<(f64, f64)>,
+    /// Der Zug schlägt zurück auf dem Feld, auf dem der Gegner gerade geschlagen hat
+    recapture: bool,
+}
 
-    let had_mate = before.mate.map(|m| m * s > 0).unwrap_or(false);
-    let still_mate = after.mate.map(|m| m * s > 0 || m == 0).unwrap_or(false);
+/// Grenzen in Prozentpunkten Gewinnchance, ungefähr wie bei Chess.com
+/// (erwartete Punkte: 0,02 / 0,05 / 0,10 / 0,20)
+const EXZELLENT: f64 = 2.0;
+const GUT: f64 = 5.0;
+const UNGENAU: f64 = 10.0;
+const FEHLER: f64 = 20.0;
+/// "Großartig": der zweitbeste Zug wäre um so viel schlechter gewesen
+const ONLY_MOVE_GAP: f64 = 20.0;
 
-    // Einordnung über den Verlust an Gewinnchance, damit Züge in schon
-    // entschiedenen Stellungen nicht als Patzer zählen
-    let (wb, wa) = (win_pct(before.cp), win_pct(after.cp));
-    let drop = if white { wb - wa } else { wa - wb };
+fn classify(c: &MoveCtx) -> (i32, Quality) {
+    let s = if c.white { 1 } else { -1 };
+    let loss = ((c.before.cp - c.after.cp) * s).max(0);
+    let (wb, wa) = (mover_pct(c.before, c.white), mover_pct(c.after, c.white));
+    // Verlust an Gewinnchance, damit Züge in schon entschiedenen Stellungen nicht als Patzer zählen
+    let drop = wb - wa;
 
-    let q = if played_best {
-        Quality::Best
-    } else if had_mate && !still_mate && drop < 30.0 {
-        Quality::Verpasst
-    } else if drop >= 30.0 {
-        Quality::Patzer
-    } else if drop >= 20.0 {
-        Quality::Fehler
-    } else if drop >= 10.0 {
-        Quality::Ungenau
-    } else {
+    if c.played_best {
+        let only_move = c.second.is_some_and(|sec| {
+            let ws = mover_pct(sec, c.white);
+            // nur wenn die Alternative die Stellung wirklich verdorben hätte
+            wb - ws >= ONLY_MOVE_GAP && ws < 90.0
+        });
+        let q = if only_move && !c.recapture { Quality::Grossartig } else { Quality::Best };
+        return (loss, q);
+    }
+
+    let had_mate = c.before.mate.is_some_and(|m| m * s > 0);
+    let still_mate = c.after.mate.is_some_and(|m| m * s > 0 || m == 0);
+    if had_mate && !still_mate && drop < 30.0 {
+        return (loss, Quality::Verpasst);
+    }
+
+    // Gegner hat gerade einen Fehler gemacht und der Zug gibt den Vorteil wieder her,
+    // ohne schlechter zu stehen als vor dem Fehler des Gegners
+    if let Some((before_their_move, their_drop)) = c.prev {
+        if their_drop >= UNGENAU && drop >= UNGENAU && wa >= before_their_move - GUT {
+            return (loss, Quality::Verpasst);
+        }
+    }
+
+    let q = if drop < EXZELLENT {
+        Quality::Exzellent
+    } else if drop < GUT {
         Quality::Gut
+    } else if drop < UNGENAU {
+        Quality::Ungenau
+    } else if drop < FEHLER {
+        Quality::Fehler
+    } else {
+        Quality::Patzer
     };
     (loss, q)
 }
@@ -500,6 +568,8 @@ pub fn analyze(
     let mut scores = Vec::with_capacity(total);
     let mut bests: Vec<Option<String>> = Vec::with_capacity(total);
     let mut pvs: Vec<Vec<String>> = Vec::with_capacity(total);
+    // Buch nur ab Grundstellung
+    let (book_len, opening) = if start_arg.is_none() { openings::lookup(&positions[1..]) } else { (0, None) };
 
     for (i, p) in positions.iter().enumerate() {
         if cancelled() {
@@ -511,12 +581,29 @@ pub fn analyze(
         bests.push(ans.best.clone());
         pvs.push(ans.pv);
     }
-    on_progress(total, total);
+
+    // Zweiter Durchgang nur für gefundene beste Züge außerhalb des Buchs: Wie gut wäre
+    // der zweitbeste Zug gewesen? Etwas flacher, für die Frage "einziger Zug?" reicht das.
+    let mut seconds: Vec<Option<Score>> = vec![None; total];
+    let candidates: Vec<usize> = (book_len..ucis.len())
+        .filter(|&i| bests[i].as_deref() == Some(ucis[i].as_str()))
+        .collect();
+    if !candidates.is_empty() {
+        engine.set_multipv(2)?;
+        let second_depth = depth.saturating_sub(4).max(8);
+        for (k, &i) in candidates.iter().enumerate() {
+            if cancelled() {
+                return Err(CANCELLED.into());
+            }
+            on_progress(total + k, total + candidates.len());
+            let ans = engine.evaluate(start_arg.as_deref(), &ucis[..i], second_depth)?;
+            seconds[i] = ans.second.map(|(cp, mate)| score_white(cp, mate, positions[i].turn()));
+        }
+    }
+    on_progress(total + candidates.len(), total + candidates.len());
     drop(engine);
 
     let spent = time_spent(&parsed.clocks, parsed.time_control, black_first);
-    // Buch nur ab Grundstellung
-    let (book_len, opening) = if start_arg.is_none() { openings::lookup(&positions[1..]) } else { (0, None) };
     let mut moves = Vec::with_capacity(sans.len());
     // (Summe, Summe der Kehrwerte, Anzahl) je Farbe
     let (mut w, mut b) = ((0.0, 0.0, 0), (0.0, 0.0, 0));
@@ -533,7 +620,26 @@ pub fn analyze(
             let m = uci.to_move(&positions[i]).ok()?;
             Some(SanPlus::from_move(positions[i].clone(), m).to_string())
         });
-        let (loss, mut quality) = classify(before, after, white, played_best);
+        // Letzter Zug des Gegners: Gewinnchance des Ziehenden davor und was der Gegner dabei verlor
+        let prev = (i > 0).then(|| {
+            let before_theirs = mover_pct(&scores[i - 1], white);
+            let their_drop = mover_pct(&scores[i - 1], !white) - mover_pct(before, !white);
+            (before_theirs, their_drop)
+        });
+        let to = |u: &str| u.get(2..4).and_then(|sq| sq.parse::<Square>().ok());
+        let recapture = i > 0
+            && to(&ucis[i]).is_some_and(|sq| {
+                to(&ucis[i - 1]) == Some(sq) && positions[i - 1].board().piece_at(sq).is_some()
+            });
+        let (loss, mut quality) = classify(&MoveCtx {
+            before,
+            after,
+            white,
+            played_best,
+            second: seconds[i].as_ref(),
+            prev,
+            recapture,
+        });
         if i < book_len {
             quality = Quality::Buch;
         }
@@ -555,7 +661,11 @@ pub fn analyze(
             score_before: before.clone(),
             loss,
             quality,
-            best_line: if played_best { Vec::new() } else { line_steps(&positions[i], &pvs[i]) },
+            best_line: if played_best || quality == Quality::Buch {
+                Vec::new()
+            } else {
+                line_steps(&positions[i], &pvs[i])
+            },
             clock: parsed.clocks[i],
             spent: spent[i],
         });
@@ -615,6 +725,52 @@ mod tests {
         let spent = time_spent(&p.clocks, p.time_control, false);
         // 180 + 2 − 170,1 = 11,9 für 2. Sf3; 179,5 + 2 − 160 = 21,5 für 2... Sc6
         assert_eq!(spent, vec![Some(2.0), Some(2.5), Some(11.9), Some(21.5), None]);
+    }
+
+    fn cp(v: i32) -> Score {
+        Score { cp: v, mate: None }
+    }
+
+    fn ctx<'a>(before: &'a Score, after: &'a Score, best: bool) -> MoveCtx<'a> {
+        MoveCtx { before, after, white: true, played_best: best, second: None, prev: None, recapture: false }
+    }
+
+    #[test]
+    fn thresholds_like_chesscom() {
+        let b = cp(0);
+        // 0 cp = 50 %; Verlust in Prozentpunkten entscheidet
+        let q = |after: i32| classify(&ctx(&b, &cp(after), false)).1;
+        assert_eq!(q(-5), Quality::Exzellent);
+        assert_eq!(q(-30), Quality::Gut);
+        assert_eq!(q(-80), Quality::Ungenau);
+        assert_eq!(q(-160), Quality::Fehler);
+        assert_eq!(q(-400), Quality::Patzer);
+    }
+
+    #[test]
+    fn only_move_is_great() {
+        let (b, a, second) = (cp(50), cp(50), cp(-300));
+        let mut c = ctx(&b, &a, true);
+        c.second = Some(&second);
+        assert_eq!(classify(&c).1, Quality::Grossartig);
+        c.recapture = true;
+        assert_eq!(classify(&c).1, Quality::Best);
+        let close = cp(20);
+        c.recapture = false;
+        c.second = Some(&close);
+        assert_eq!(classify(&c).1, Quality::Best);
+    }
+
+    #[test]
+    fn giving_back_a_gift_is_missed() {
+        // Gegner patzt (Weiß steht danach +400), Weiß gibt es zurück auf +20
+        let (b, a) = (cp(400), cp(20));
+        let mut c = ctx(&b, &a, false);
+        c.prev = Some((win_pct(0), 40.0));
+        assert_eq!(classify(&c).1, Quality::Verpasst);
+        // ohne Fehler des Gegners ist es ein Patzer
+        c.prev = Some((win_pct(400), 0.0));
+        assert_eq!(classify(&c).1, Quality::Patzer);
     }
 
     #[test]

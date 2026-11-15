@@ -21,17 +21,21 @@ interface Props {
 }
 
 /** Reihenfolge in der Übersicht, gut nach schlecht */
-const order: Quality[] = ["best", "gut", "buch", "ungenau", "fehler", "verpasst", "patzer"];
+const order: Quality[] = ["grossartig", "best", "exzellent", "gut", "buch", "ungenau", "fehler", "verpasst", "patzer"];
+/** Züge, bei denen es keinen besseren gab */
+const top = new Set<Quality>(["grossartig", "best", "buch"]);
 const bad = new Set<Quality>(["ungenau", "fehler", "verpasst", "patzer"]);
 
 /** "ist ein Fehler", "ist der beste Zug" … */
 const verdict: Record<Quality, string> = {
+  grossartig: "ist großartig, der einzige gute Zug",
   best: "ist der beste Zug",
+  exzellent: "ist exzellent",
   gut: "ist gut",
   buch: "ist Eröffnungstheorie",
   ungenau: "ist ungenau",
   fehler: "ist ein Fehler",
-  verpasst: "verpasst ein Matt",
+  verpasst: "verpasst eine Chance",
   patzer: "ist ein Patzer",
 };
 
@@ -192,7 +196,7 @@ export function AnalysisView(p: Props) {
                 fen={shownMove?.fen ?? report.startFen}
                 flipped={me === "black"}
                 last={shownMove ? { uci: shownMove.uci, quality: shownMove.quality } : null}
-                arrow={shownMove && shownMove.quality !== "best" && shownMove.quality !== "buch" ? shownMove.bestUci : null}
+                arrow={shownMove && !top.has(shownMove.quality) ? shownMove.bestUci : null}
                 check={!!shownMove && /[+#]$/.test(shownMove.san)}
                 badge
               />
@@ -345,7 +349,7 @@ function MoveCard({
       </div>
     );
   }
-  const better = m.quality !== "best" && m.quality !== "buch" && m.bestSan;
+  const better = !top.has(m.quality) && m.bestSan;
   return (
     <div className={`movecard mc--${m.quality}`} data-mine={mine || undefined}>
       <div className="movecard-head">

@@ -9,7 +9,8 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const VERSION: u32 = 1;
+/// 2: Einstufung wie Chess.com (Exzellent, Großartig, Verpasst)
+const VERSION: u32 = 2;
 
 /// Partiedaten aus der Chess.com-Liste, für Statistik und Training
 #[derive(Serialize, Deserialize, Clone)]

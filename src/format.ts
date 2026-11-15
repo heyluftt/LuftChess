@@ -59,7 +59,9 @@ export function winPct(s: Score): number {
 }
 
 export const qualityLabel: Record<Quality, string> = {
+  grossartig: "Großartig",
   best: "Bester Zug",
+  exzellent: "Exzellent",
   gut: "Gut",
   ungenau: "Ungenau",
   fehler: "Fehler",
@@ -70,6 +72,8 @@ export const qualityLabel: Record<Quality, string> = {
 
 export const qualityMark: Record<Quality, string> = {
   buch: "",
+  grossartig: "!",
+  exzellent: "",
   best: "★",
   gut: "",
   ungenau: "?!",

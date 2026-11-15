@@ -1,5 +1,6 @@
 import type React from "react";
 import type { Quality } from "../types";
+import { badgeGlyph } from "./QualityBadge";
 
 interface Props {
   /** Stellung als FEN (nur das Brett-Feld wird gebraucht) */
@@ -16,6 +17,8 @@ interface Props {
   onSquare?: (square: string) => void;
   /** Hervorgehobenes Feld (gewählte Figur) */
   picked?: string | null;
+  /** Bewertungsabzeichen am Zielfeld des letzten Zugs */
+  badge?: boolean;
 }
 
 const S = 100; // Feldgröße im viewBox
@@ -48,7 +51,7 @@ function parseBoard(fen: string): (string | null)[] {
 
 const sq = (name: string) => (name.charCodeAt(0) - 97) + (Number(name[1]) - 1) * 8;
 
-export function Board({ fen, flipped, last, arrow, check, onSquare, picked }: Props) {
+export function Board({ fen, flipped, last, arrow, check, onSquare, picked, badge }: Props) {
   const squares = parseBoard(fen);
   const turn = fen.split(" ")[1] === "b" ? "b" : "w";
 
@@ -160,6 +163,24 @@ export function Board({ fen, flipped, last, arrow, check, onSquare, picked }: Pr
       })}
 
       {arrowEl}
+
+      {badge &&
+        last &&
+        (() => {
+          const { x, y } = pos(sq(last.uci.slice(2, 4)));
+          // oben rechts am Feld, leicht über den Rand hinaus wie ein Aufkleber
+          const cx = Math.min(x + S - 4, 8 * S - 19);
+          const cy = Math.max(y + 4, 19);
+          const g = badgeGlyph[last.quality];
+          return (
+            <g className={`board-badge qb--${last.quality}`}>
+              <circle cx={cx} cy={cy} r={18} />
+              <text x={cx} y={cy + (g.length > 1 ? 7 : 8)} textAnchor="middle" fontSize={g.length > 1 ? 20 : 24}>
+                {g}
+              </text>
+            </g>
+          );
+        })()}
     </svg>
   );
 }

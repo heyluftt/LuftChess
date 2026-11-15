@@ -16,6 +16,7 @@
   --ebony: #141312;
 
   --q-best: #86b98a;
+  --q-gut: #a3ad98;
   --q-ungenau: #e2c25b;
   --q-fehler: #ee9440;
   --q-verpasst: #b48ce4;
@@ -553,6 +554,253 @@ h3 {
   transition: width 0.2s linear;
 }
 
+/* Bewertungsabzeichen */
+
+.qbadge {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  color: var(--ebony);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.qb--best { background: var(--q-best); fill: var(--q-best); }
+.qb--gut { background: var(--q-gut); fill: var(--q-gut); }
+.qb--buch { background: var(--q-buch); fill: var(--q-buch); }
+.qb--ungenau { background: var(--q-ungenau); fill: var(--q-ungenau); }
+.qb--fehler { background: var(--q-fehler); fill: var(--q-fehler); }
+.qb--verpasst { background: var(--q-verpasst); fill: var(--q-verpasst); }
+.qb--patzer { background: var(--q-patzer); fill: var(--q-patzer); }
+
+.board-badge circle {
+  stroke: var(--ebony);
+  stroke-width: 2.5;
+}
+
+.board-badge text {
+  fill: var(--ebony);
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+/* Brett mit Bewertungsleiste */
+
+.board-area {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 6px;
+}
+
+.evalbar {
+  position: relative;
+  display: flex;
+  flex-direction: column-reverse;
+  border-radius: var(--r-s);
+  background: var(--ebony);
+  overflow: hidden;
+}
+
+.evalbar[data-flipped] {
+  flex-direction: column;
+}
+
+.evalbar-white {
+  display: block;
+  background: var(--ivory);
+  transition: height 0.2s ease;
+}
+
+.evalbar-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: -0.04em;
+}
+
+/* Beschriftung am Ende der führenden Seite */
+.evalbar-label[data-side="white"] { bottom: 3px; color: var(--ebony); }
+.evalbar-label[data-side="black"] { top: 3px; color: var(--ivory); }
+.evalbar[data-flipped] .evalbar-label[data-side="white"] { bottom: auto; top: 3px; }
+.evalbar[data-flipped] .evalbar-label[data-side="black"] { top: auto; bottom: 3px; }
+
+/* Zugkarte */
+
+.movecard {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--r-m);
+  background: var(--raise);
+  border-left: 3px solid var(--line-strong);
+}
+
+.mc--best { border-left-color: var(--q-best); }
+.mc--gut { border-left-color: var(--q-gut); }
+.mc--buch { border-left-color: var(--q-buch); }
+.mc--ungenau { border-left-color: var(--q-ungenau); }
+.mc--fehler { border-left-color: var(--q-fehler); }
+.mc--verpasst { border-left-color: var(--q-verpasst); }
+.mc--patzer { border-left-color: var(--q-patzer); }
+
+.movecard-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.movecard-eval {
+  font-weight: 700;
+}
+
+.movecard-sub {
+  font-size: 12.5px;
+  padding-left: 32px;
+}
+
+.movecard .line {
+  margin-top: 2px;
+  padding-left: 28px;
+}
+
+/* Übersicht */
+
+.summary {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.summary th,
+.summary td {
+  padding: 4px 0;
+}
+
+.summary thead th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dim);
+  text-align: center;
+  padding-bottom: 8px;
+}
+
+.summary-who {
+  width: 72px;
+}
+
+.summary-who[data-me] {
+  color: var(--ivory);
+  font-weight: 600;
+}
+
+.summary-who .piece {
+  display: inline-block;
+  vertical-align: -1px;
+  margin-right: 2px;
+}
+
+.summary tbody th {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 400;
+  color: var(--ash);
+  text-align: left;
+}
+
+.summary tbody tr + tr th,
+.summary tbody tr + tr td {
+  border-top: 1px solid var(--line);
+}
+
+.summary td {
+  text-align: center;
+}
+
+.summary-n {
+  min-width: 40px;
+  padding: 2px 8px;
+  border-radius: var(--r-s);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.summary-n:hover:not(:disabled) {
+  background: var(--panel-bg);
+  outline: 1px solid var(--line-strong);
+}
+
+.summary-n:not([data-me]) {
+  opacity: 0.7;
+}
+
+.summary-n[data-zero] {
+  color: var(--line-strong);
+  opacity: 1;
+}
+
+.summary-n:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+/* Zugliste */
+
+.movelist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+}
+
+.movelist li {
+  display: grid;
+  grid-template-columns: 34px 1fr 1fr;
+  align-items: center;
+}
+
+.movelist li:nth-child(odd) {
+  background: color-mix(in srgb, var(--raise) 45%, transparent);
+}
+
+.ml-n {
+  padding-left: 10px;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.ml-move {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 1px 4px;
+  padding: 4px 6px;
+  border-radius: var(--r-s);
+  font-size: 13px;
+  text-align: left;
+}
+
+.ml-move:hover {
+  background: var(--raise);
+}
+
+.ml-move[aria-pressed="true"] {
+  background: var(--line-strong);
+  font-weight: 600;
+}
+
 /* Brett */
 
 .board {
@@ -665,11 +913,6 @@ h3 {
   color: var(--ash);
 }
 
-.strip-caption {
-  min-height: 22px;
-  font-size: 13px;
-}
-
 .line {
   display: flex;
   flex-wrap: wrap;
@@ -685,163 +928,18 @@ h3 {
 }
 
 .line-move:hover {
-  background: var(--raise);
+  background: var(--line);
   color: var(--ivory);
 }
 
 .line-move[aria-pressed="true"] {
-  background: var(--raise);
+  background: var(--line);
   color: var(--q-best);
   font-weight: 600;
 }
 
 .line-move:first-child {
   color: var(--dim);
-}
-
-.detail {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.detail-move {
-  font-weight: 600;
-}
-
-.detail-eval {
-  margin-left: auto;
-  font-weight: 600;
-}
-
-/* Zählung */
-
-.tally {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.tally-item {
-  display: grid;
-  gap: 2px;
-  padding-left: 10px;
-  border-left: 2px solid currentColor;
-}
-
-.tally-n {
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 1.1;
-}
-
-.tally-l {
-  font-size: 12px;
-  color: var(--ash);
-}
-
-.tally-item[data-zero] {
-  color: var(--line-strong);
-}
-
-.tally-item[data-zero] .tally-n {
-  color: var(--dim);
-}
-
-/* Schlüsselmomente */
-
-.moments {
-  list-style: none;
-  margin: 0 -8px;
-  padding: 0;
-}
-
-.moment {
-  display: grid;
-  grid-template-columns: 8px auto 1fr auto;
-  grid-template-areas:
-    "dot move q eval"
-    ". best best best";
-  align-items: baseline;
-  column-gap: 10px;
-  row-gap: 1px;
-  width: 100%;
-  padding: 9px 8px;
-  border-radius: var(--r-s);
-  text-align: left;
-}
-
-.moment:hover,
-.moment[aria-pressed="true"] {
-  background: var(--raise);
-}
-
-.q-dot {
-  grid-area: dot;
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  align-self: center;
-}
-
-.moment-move {
-  grid-area: move;
-  font-weight: 600;
-}
-
-.moment-q {
-  grid-area: q;
-  font-size: 13px;
-}
-
-.moment-eval {
-  grid-area: eval;
-  font-size: 13px;
-  color: var(--ash);
-}
-
-.moment-best {
-  grid-area: best;
-  font-size: 12px;
-  color: var(--ash);
-}
-
-/* Zugliste */
-
-.movetable {
-  list-style: none;
-  margin: 4px 0 0;
-  padding: 0;
-  columns: 2;
-  column-gap: 20px;
-}
-
-.movetable li {
-  break-inside: avoid;
-  display: grid;
-  grid-template-columns: 26px 1fr 1fr;
-  align-items: center;
-}
-
-.mt-n {
-  font-size: 12px;
-  color: var(--dim);
-}
-
-.mt-move {
-  display: flex;
-  gap: 3px;
-  padding: 3px 6px;
-  border-radius: var(--r-s);
-  text-align: left;
-}
-
-.mt-move:hover,
-.mt-move[aria-pressed="true"] {
-  background: var(--raise);
 }
 
 /* Bewertungsfarben */

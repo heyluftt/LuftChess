@@ -79,6 +79,18 @@ export function SettingsView({ settings, onChange }: Props) {
         </span>
       </label>
 
+      <label className="toggle">
+        <input
+          type="checkbox"
+          checked={settings.hideAds}
+          onChange={(e) => onChange({ ...settings, hideAds: e.target.checked })}
+        />
+        <span>
+          <span className="toggle-label">Werbung auf Chess.com ausblenden</span>
+          <span className="muted small">Chess.com finanziert sich auch über Werbung. Werbefrei geht es offiziell mit Premium.</span>
+        </span>
+      </label>
+
       <p className="footnote">
         Die Anmeldung bei Chess.com bleibt in der App gespeichert. LuftChess liest deine Partien nur über die
         öffentliche Chess.com-Schnittstelle und analysiert ausschließlich beendete Partien.

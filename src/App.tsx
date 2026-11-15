@@ -13,7 +13,13 @@ const PANEL = 384; // muss zu --panel in styles.css passen
 const KEY = "luftchess.settings";
 const PAGE = 25;
 // In der Browser-Vorschau passt der Name zu den Beispieldaten
-const defaults: Settings = { username: inTauri ? "" : "luftdemo", engine: "", depth: 16, autoAnalyze: false };
+const defaults: Settings = {
+  username: inTauri ? "" : "luftdemo",
+  engine: "",
+  depth: 16,
+  autoAnalyze: false,
+  hideAds: false,
+};
 /** Chess.com-Seiten, auf denen gespielt wird: dort rechnet keine Engine */
 const PLAY_PAGE = /^\/(play|game|live)(\/|$)/;
 
@@ -63,6 +69,18 @@ export default function App() {
   useEffect(() => {
     api.setPanel(panelOpen ? PANEL : 0);
   }, [panelOpen]);
+
+  // Werbe-Schalter an die Chess.com-Seite geben; nach einem Seitenwechsel erneut,
+  // falls die Seite beim ersten Mal noch nicht bereit war
+  const hideAds = useRef(settings.hideAds);
+  useEffect(() => {
+    hideAds.current = settings.hideAds;
+    api.hideAds(settings.hideAds).catch(() => {});
+  }, [settings.hideAds]);
+  useEffect(() => {
+    const t = setTimeout(() => api.hideAds(hideAds.current).catch(() => {}), 1500);
+    return () => clearTimeout(t);
+  }, [chessPath]);
 
   useEffect(() => {
     const offs = [

@@ -15,6 +15,7 @@ async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> 
 export const api = {
   setPanel: (width: number) => call<void>("set_panel", { width }),
   go: (path: string) => call<void>("chess_go", { path }),
+  hideAds: (hide: boolean) => call<void>("chess_hide_ads", { hide }),
   action: (action: "back" | "forward" | "reload") => call<void>("chess_action", { action }),
   recentGames: (username: string, limit: number) => call<Game[]>("recent_games", { username, limit }),
   analyze: (g: Game, engine: string, depth: number) => {

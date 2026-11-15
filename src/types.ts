@@ -90,4 +90,6 @@ export interface Settings {
   depth: number;
   /** Neue Partien im Hintergrund analysieren */
   autoAnalyze: boolean;
+  /** Werbeflächen auf Chess.com ausblenden */
+  hideAds: boolean;
 }

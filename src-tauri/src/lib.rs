@@ -69,6 +69,14 @@ fn chess_action(action: String, app: tauri::AppHandle) -> Result<(), String> {
     wv.eval(js).map_err(|e| e.to_string())
 }
 
+/// Werbeflächen auf Chess.com ein- oder ausblenden (siehe ads.js)
+#[tauri::command]
+fn chess_hide_ads(hide: bool, app: tauri::AppHandle) -> Result<(), String> {
+    let wv = app.get_webview("chess").ok_or("Chess.com-Ansicht fehlt")?;
+    wv.eval(format!("window.__luftchessAds && window.__luftchessAds({hide})"))
+        .map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 async fn recent_games(username: String, limit: usize) -> Result<Vec<chesscom::Game>, String> {
     let limit = limit.clamp(1, 500);
@@ -206,6 +214,7 @@ pub fn run() {
             set_panel,
             chess_go,
             chess_action,
+            chess_hide_ads,
             recent_games,
             analyze_game,
             saved_report,
@@ -234,7 +243,9 @@ pub fn run() {
             // Chess.com darüber, zwischen Leiste und Panel
             let handle = app.handle().clone();
             window.add_child(
-                WebviewBuilder::new("chess", WebviewUrl::External(Url::parse(CHESS_HOME)?)).on_navigation(
+                WebviewBuilder::new("chess", WebviewUrl::External(Url::parse(CHESS_HOME)?))
+                    .initialization_script(include_str!("ads.js"))
+                    .on_navigation(
                     move |url| {
                         let _ = handle.emit_to("ui", "chess-nav", url.to_string());
                         true

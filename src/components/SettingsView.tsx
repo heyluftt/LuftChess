@@ -83,6 +83,9 @@ export function SettingsView({ settings, onChange }: Props) {
         Die Anmeldung bei Chess.com bleibt in der App gespeichert. LuftChess liest deine Partien nur über die
         öffentliche Chess.com-Schnittstelle und analysiert ausschließlich beendete Partien.
       </p>
+      <p className="footnote">
+        Enthält Stockfish 19 (GPLv3), Quelltext: github.com/official-stockfish/Stockfish
+      </p>
     </div>
   );
 }

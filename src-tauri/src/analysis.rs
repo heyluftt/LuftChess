@@ -285,7 +285,10 @@ impl Engine {
         } else {
             self.send(&format!("{base} moves {}", moves.join(" ")))?;
         }
-        self.send(&format!("go depth {depth}"))?;
+        // Zeitlimit als Notbremse: einzelne Stellungen können die Suche selten explodieren lassen
+        // (bei Stockfish 19 mit mehreren Threads beobachtet), dann endet sie nie auf der Zieltiefe
+        let cap_ms = 3000 + depth * 200;
+        self.send(&format!("go depth {depth} movetime {cap_ms}"))?;
         let mut ans = EngineAnswer { cp: None, mate: None, best: None, pv: Vec::new() };
         loop {
             let line = self.read_line()?;

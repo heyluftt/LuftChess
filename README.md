@@ -12,6 +12,7 @@ Desktop client for Chess.com with local game analysis. Tauri 2, Rust, React. The
 
 ```bash
 npm install
+powershell -ExecutionPolicy Bypass -File scripts/get-stockfish.ps1
 npm run tauri dev
 ```
 
@@ -23,7 +24,7 @@ npm run tauri build
 
 ## Stockfish
 
-Expects `src-tauri/engine/stockfish.exe` (not in the repository). Download: <https://stockfishchess.org/download/>. Stockfish is licensed under GPLv3.
+The installer ships Stockfish 19 (universal build, picks the best code for the CPU). It is not in the repository; `scripts/get-stockfish.ps1` downloads the official release into `src-tauri/engine/`. Stockfish is licensed under GPLv3, source: <https://github.com/official-stockfish/Stockfish>.
 
 ## Third-party licenses
 

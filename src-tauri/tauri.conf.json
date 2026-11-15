@@ -19,7 +19,9 @@
     "active": true,
     "targets": ["nsis"],
     "resources": {
-      "engine/stockfish.exe": "engine/stockfish.exe"
+      "engine/stockfish.exe": "engine/stockfish.exe",
+      "engine/COPYING.txt": "engine/COPYING.txt",
+      "engine/AUTHORS.txt": "engine/AUTHORS.txt"
     },
     "icon": [
       "icons/32x32.png",

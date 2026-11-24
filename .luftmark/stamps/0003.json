@@ -1,0 +1,29 @@
+{
+  "luftmark": "1.2.0",
+  "projectId": "01a1fd98-a327-72ae-b1ad-8990a39f36e8",
+  "name": "LuftChess",
+  "author": "Luft",
+  "tag": "LMDI4VIXZL4O7XRLGP",
+  "seed": "0x4C554654",
+  "stacks": [
+    "web",
+    "tauri"
+  ],
+  "banner": "always",
+  "createdAt": "2026-11-21T10:13:21.363Z",
+  "stampedAt": "2026-11-21T11:11:09.755Z",
+  "fileCount": 95,
+  "merkleRoot": "803ff91deb9d5714468974e2a11d5a85a37cdd21042293daa91d28af3e81cda8",
+  "seal": [
+    " ≈≈≈~≋ ≋~  ≈≈≋≋",
+    " ≋≋≈≈ ≈≈ ~≋~ ~≈",
+    "≈≈≈≈~≋≋ ~≈≈ ≈  "
+  ],
+  "chain": {
+    "n": 3,
+    "prev": "6f938c7b3b4f434e84f70b66bc65a5cfc3a835a034b953600d315a3280678873"
+  },
+  "pubkey": "WtvJ6JWDYV-jVQNWX8qjezb3cU9k5s0pajiDzT8TFWA",
+  "keyFingerprint": "LK4MG6RSBKIM35",
+  "sig": "BsBydQf8Knx068bfp317TBILw-CtIUo4mUDc1YBZTjQc0nmMSKrxlYei5GQfUihZRrvMo2DAaoIgddQ_PrhOCA"
+}

@@ -1,0 +1,30 @@
+[package]
+name = "luftchess"
+version = "0.4.0"
+description = "Desktop client for Chess.com with local game analysis"
+authors = ["Luft"]
+edition = "2021"
+
+[lib]
+name = "luftchess_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["unstable"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+shakmaty = "0.30"
+ureq = { version = "3", features = ["json"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
+
+[package.metadata.luft] # ≋
+sig = "LMDI4VIXZL4O7XRLGP"
+seed = "0x4C554654"
